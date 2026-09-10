@@ -1,33 +1,29 @@
-import { onMounted, onUnmounted, nextTick } from 'vue'
-import { whenReady, ScrollTrigger } from '../animations/motion'
+import { onMounted, onUnmounted } from 'vue'
+import { gsap, scheduleRefresh, whenReady } from '../animations/motion'
 
 /**
- * Roda a montagem das animações só depois que as fontes carregarem,
- * e limpa os ScrollTriggers da página ao sair.
+ * Cria as animações de um componente dentro de um gsap.context.
+ *
+ * Espera as fontes carregarem antes de medir qualquer coisa e desfaz
+ * tudo (tweens + ScrollTriggers) quando o componente sai da tela.
+ *
+ * Uso:
+ *   const rootRef = ref(null)
+ *   useMotion(() => { revealUp('.algo') }, rootRef)
  */
-export function useMotion(setup, rootRef) {
-  let ctx
+export function useMotion(setup, scopeRef) {
+  let ctx = null
+  let disposed = false
 
   onMounted(async () => {
     await whenReady()
-    await nextTick()
-    ctx = ScrollTrigger.create({
-      trigger: rootRef?.value || document.body,
-      start: 'top bottom',
-      end: 'bottom top',
-      // só para ter um contexto; os triggers reais vêm do setup
-    })
-    const local = []
-    const track = (t) => {
-      if (t) local.push(t)
-      return t
-    }
-    setup(track)
-    ctx._local = local
+    if (disposed) return
+    ctx = gsap.context(setup, scopeRef?.value || undefined)
+    scheduleRefresh()
   })
 
   onUnmounted(() => {
-    ctx?._local?.forEach((t) => t?.kill?.() || t?.scrollTrigger?.kill?.())
-    ctx?.kill()
+    disposed = true
+    ctx?.revert()
   })
 }

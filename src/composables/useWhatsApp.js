@@ -1,14 +1,17 @@
-import { computed } from 'vue'
-
 /**
- * Monta o link wa.me a partir do número e da mensagem padrão.
- * Número no formato internacional, só dígitos (ex.: 5569993921638).
+ * Composable reutilizável para links WhatsApp (wa.me)
+ * Uso: const { href, open } = useWhatsApp(phone, message)
  */
-export function useWhatsApp(phone, message = '') {
-  const href = computed(() => {
-    const base = `https://wa.me/${phone}`
-    if (!message) return base
-    return `${base}?text=${encodeURIComponent(message)}`
-  })
-  return { href }
+export function useWhatsApp(phoneNumber, message = '') {
+  const digits = String(phoneNumber || '').replace(/\D/g, '')
+  const encoded = message ? encodeURIComponent(message) : ''
+  const href = encoded
+    ? `https://wa.me/${digits}?text=${encoded}`
+    : `https://wa.me/${digits}`
+
+  function open() {
+    window.open(href, '_blank', 'noopener,noreferrer')
+  }
+
+  return { href, open, digits }
 }
